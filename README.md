@@ -1,41 +1,44 @@
-# Template for a process to be deployed in the data cage
+# Confidential Workload Demo - Clinical trial
+This project provides a demo of a confidential workload to find patients for clinical trials.
 
-This is a sample project with a representative set of resources to deploy a data processing machine learning algorithm in a Datavillage cage.
-The example is using XGBoost library and its classification example: https://xgboost.readthedocs.io/en/stable/get_started.html
+---
 
-__TL;DR__ : clone this repo and edit the `process.py` file to adapt it for your own use casse
+## Features
 
+- **Confidential Data Processing**: Handles secure workloads while maintaining privacy.
+- **Data Quality Checks**: Triggers data holders' quality checks.
+- **Collaborative Analysis**: Enables secure analysis across data owners.
 
-## Template Use case
+---
 
+## Project Structure
 
-To make this template closer to a real use case,
-it implements 3 event processing logic
- 1. TRAIN event to train a classification model on a data batch
- 2. PREDICT event to predict classification classes on a data batch using a previously trained event
- 3. INFER event to infer (predict) a classification class on one single case at a time
-
-All these steps are defined in distinct functions of the process.py file.
-Simply adapt this function when addressing your own use case
-
-
-## Content of this repo
-
-Have a look at the main template repository to get familiar with the template structure
-https://github.com/datavillage-me/cage-process-template
-
-## Infering event
-
-For testing the inference, you can send an event with that content:
 ```
-{
-   "type": "INFER",
-   "data": {
-      "sepal length (cm)": 5.9,
-      "sepal width (cm)": 3.0,
-      "petal length (cm)": 5.1,
-      "petal width (cm)": 1.8
-   }
-}
+├── .github 
+├── ── workflows
+├── ── ──release_docker_image.yaml  #  sample code to build and publish the docker image via github actions 
+├── data             # datasets examples used in the demo and loaded by the confidential workload 
+├── outputs          # example of outputs
+├── test             # unit tests
+├── .env.example     # env example to run locally
+├── Dockerfile       # Docker configuration for containerized deployment
+├── index.py         # Entry point for orchestrating events
+├── LICENSE.txt      # License information (MIT License)
+├── process.py       # Core processing logic for confidential workloads
+├── README.md.txt    # Readme file
+├── requirements.txt # List of required Python packages
 ```
-You should see in the log of the algorithm that it is categorize as a "virginica" Iris species
+
+---
+
+## Deployment process
+What happens when such a repo is pushed on a github repository ?
+
+The dockerfile is being used to build a docker image that is then published on the github container registry.
+You can then refer to this docker image via its registry address to make the datavillage platform download and run it in a confidential environment
+
+---
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE.txt` for details.

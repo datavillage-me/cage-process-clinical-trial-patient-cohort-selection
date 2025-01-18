@@ -1,0 +1,54 @@
+quality_checks:
+  type: table
+  fields:
+    description:
+      type: varchar
+      description: Description of the scope of quality check
+      required: true
+      classification: restricted
+    timestamp:
+      type: timestamp
+      description: Quality check execution time
+      required: true
+      classification: restricted
+    hasErrors:
+      type: boolean
+      description: If quality check has errors
+      required: true
+      classification: restricted
+    hasWarnings:
+      type: boolean
+      description: If quality check has warnings
+      required: true
+      classification: restricted
+    hasFailures:
+      type: boolean
+      description: If quality check has failures
+      required: true
+      classification: restricted
+    details:
+      type: text
+      description: Detail result of the quality check in JSON Format
+      required: true
+      classification: restricted
+
+
+
+{
+    "candidates": "integer",
+    "gender": {
+        "male": "integer",
+        "female": "integer"
+    },
+    "education_level": {
+        "high_school": "integer",
+        "college": "integer",
+        "university": "integer"
+    },
+    "employment_status": {
+        "unemployed": "integer",
+        "employed": "integer",
+        "student": "integer",
+        "retired": "integer"
+    }
+}

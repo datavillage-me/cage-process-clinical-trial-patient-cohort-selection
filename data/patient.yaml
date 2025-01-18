@@ -1,0 +1,29 @@
+patients: 
+  type: "table"
+  fields: 
+    national_id: 
+      type: "varchar"
+      required: true
+      unique: true
+      pii: true
+      classification: "confidential"
+    user_hash: 
+      type: "varchar"
+      required: true
+      unique: true
+      classification: "restricted"
+    medical_problem: 
+      type: "varchar"
+      required: true
+      pii: true
+      classification: "confidential"
+    medical_medication: 
+      type: "varchar"
+      required: true
+      pii: true
+      classification: "confidential"
+    medical_vaccine: 
+      type: "varchar"
+      required: true
+      pii: true
+      classification: "confidential"

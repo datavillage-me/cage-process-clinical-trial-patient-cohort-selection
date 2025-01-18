@@ -1,0 +1,10 @@
+{
+  "connectorKeys":{
+    "description":"One file per model",
+    "location":"gs://pharma_company/{model}.json",
+    "file_format":"json",
+    "encryption_key":"${ENCRYPTION_KEY_672116ef5d4301b25e5a7aa0}",
+    "key_id":"${KEY_ID_672116ef5d4301b25e5a7aa0}",
+    "secret":"${SECRET_672116ef5d4301b25e5a7aa0}"
+  }
+}

@@ -1,0 +1,51 @@
+citizens: 
+  type: "table"
+  fields: 
+    national_id: 
+      type: "varchar"
+      required: true
+      unique: true
+      pii: true
+      classification: "confidential"
+    user_hash: 
+      type: "varchar"
+      required: true
+      unique: true
+      classification: "restricted"
+    age: 
+      type: "integer"
+      required: true
+      classification: "restricted"
+    gender: 
+      type: "varchar"
+      required: true
+      classification: "restricted"
+      enum: 
+      - "female"
+      - "male"
+      - "other"
+    income_level: 
+      type: "varchar"
+      required: true
+      classification: "restricted"
+      enum: 
+      - "high"
+      - "middle"
+      - "low"
+    education_level: 
+      type: "varchar"
+      required: true
+      classification: "restricted"
+      enum: 
+      - "high_school"
+      - "college"
+      - "university"
+    employment_status: 
+      type: "varchar"
+      required: true
+      classification: "restricted"
+      enum: 
+      - "employed"
+      - "student"
+      - "unemployed"
+      - "retired"
