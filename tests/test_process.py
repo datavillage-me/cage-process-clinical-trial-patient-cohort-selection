@@ -15,22 +15,24 @@ class Test(unittest.TestCase):
 
     """
 
-    def test_data_quality_check(self):
-        """
-        Try the process to check data quality
-        """
-        test_event = {
-            'type': 'CHECK_DATA_QUALITY'
-        }
-        process.event_processor(test_event)
-    
-    # def test_get_suspicious_accounts(self):
+    # def test_data_quality_check(self):
     #     """
-    #     Try the process to get suspicious account
+    #     Try the process to check data quality
     #     """
     #     test_event = {
-    #     "type": "GET_SUSPICIOUS_ACCOUNTS",
-    #     "bank_id": "IZXVGB23BWP"
+    #         'type': 'CHECK_DATA_QUALITY'
     #     }
     #     process.event_processor(test_event)
+    
+    def test_get_candidates(self):
+        """
+        Try the process to get candidates
+        """
+        test_event = {
+        "type": "GET_NUMBER_OF_CANDIDATES",
+        "medical_problem": "Diabetes",
+        "medical_medication": "Ibuprofen",
+        "medical_vaccine": "Varicella"
+        }
+        process.event_processor(test_event)
     

@@ -31,24 +31,46 @@ quality_checks:
       description: Detail result of the quality check in JSON Format
       required: true
       classification: restricted
-
-
-
-{
-    "candidates": "integer",
-    "gender": {
-        "male": "integer",
-        "female": "integer"
-    },
-    "education_level": {
-        "high_school": "integer",
-        "college": "integer",
-        "university": "integer"
-    },
-    "employment_status": {
-        "unemployed": "integer",
-        "employed": "integer",
-        "student": "integer",
-        "retired": "integer"
-    }
-}
+candidates:
+  type: table
+  fields:
+    candidates:
+      type: int
+      required: true
+      classification: public
+    male:
+      type: int
+      required: true
+      classification: public
+    female:
+      type: int
+      required: true
+      classification: public
+    high_school:
+      type: int
+      required: true
+      classification: public
+    college:
+      type: int
+      required: true
+      classification: public
+    university:
+      type: int
+      required: true
+      classification: public
+    unemployed:
+      type: int
+      required: true
+      classification: public
+    employed:
+      type: int
+      required: true
+      classification: public
+    student:
+      type: int
+      required: true
+      classification: public
+    retired:
+      type: int
+      required: true
+      classification: public

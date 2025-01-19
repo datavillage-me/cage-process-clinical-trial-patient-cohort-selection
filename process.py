@@ -42,8 +42,9 @@ def event_processor(evt: dict):
         # use the CHECK_DATA_QUALITY event processor dedicated function
         logger.info(f"Use the check data quality event processor")
         check_data_quality_contracts_event_processor(evt)
-    elif(evt_type == "QUERY"):
-        process_query_event(evt)
+    elif(evt_type == "GET_NUMBER_OF_CANDIDATES"):
+        logger.info(f"Use the get the number of candidates event processor")
+        process_get_number_of_candidates_event(evt)
     else:
         generic_event_processor(evt)
 
@@ -84,109 +85,137 @@ def check_data_quality_contracts_event_processor(evt: dict):
     except Exception as e:
         logger.error(e)
 
-def process_query_event(evt: dict):
+def process_get_number_of_candidates_event(evt: dict):
     """
-    Train an XGBoost Classifier model using the logic given in 
-     """
+    Get potential candidates – Retrieve a report on the number of potential candidates to a clinical trial based on query criteria.
+    """
+    try:
+        logger.info(f"---------------------------------------------------------")
+        logger.info(f"|                    START PROCESSING                   |")
+        logger.info(f"|                                                       |")
+        start_time = time.time()
+        logger.info(f"|    Start time:  {start_time} secs               |")
+        logger.info(f"|                                                       |")
+        audit_log(f"Start processing event: {evt.get('type', '')}.")
 
-    logger.info(f"--------------------------------------------------")
-    logger.info(f"|               START BENCHMARKING               |")
-    logger.info(f"|                                                |")
-    # load the training data from data providers
-    # duckDB is used to load the data and aggregated them in one single datasets
-    logger.info(f"| 1. Load data from data providers               |")
-    logger.info(f"|    https://github.com/./demographic.parquet |")
-    logger.info(f"|    https://github.com/./patients.parquet |")
-    dataProvider1URL="https://github.com/datavillage-me/cage-process-clinical-trial-patient-cohort-selection/raw/main/data/demographic.parquet"
-    #dataProvider1URL="data/demographic.parquet"
-    dataProvider2URL="https://github.com/datavillage-me/cage-process-clinical-trial-patient-cohort-selection/raw/main/data/patients.parquet"
-    #dataProvider2URL="data/patients.parquet"
-    start_time = time.time()
-    logger.info(f"|    Start time:  {start_time} secs |")
-    
-    whereClause=evt.get("parameters", "")
-    if whereClause!='':
-        baseQuery="SELECT COUNT(*) as total from '"+dataProvider1URL+"' as demographic,'"+dataProvider2URL+"' as patients WHERE demographic.national_id=patients.national_id AND "+whereClause
-    else:
-        baseQuery="SELECT COUNT(*) as total from '"+dataProvider1URL+"' as demographic,'"+dataProvider2URL+"' as patients WHERE demographic.national_id=patients.national_id"
-    
-    #total candidates
-    df = duckdb.sql(baseQuery).df()
-    totalCandidates=df['total'][0]
-    print(totalCandidates)
-    
-    #gender
-    #male
-    df = duckdb.sql(baseQuery+ " AND demographic.gender='male'").df()
-    totalGenderMale=df['total'][0]
-    #female
-    df = duckdb.sql(baseQuery+ " AND demographic.gender='female'").df()
-    totalGenderFemale=df['total'][0]
+        #load parameters
+        medical_problem= evt.get("medical_problem", "")
+        medical_medication= evt.get("medical_medication", "")
+        medical_vaccine= evt.get("medical_vaccine", "")
 
-    #education_level
-    #high_school
-    df = duckdb.sql(baseQuery+ " AND demographic.education_level='high_school'").df()
-    totalEducationLevelHighSchool=df['total'][0]
-    #college
-    df = duckdb.sql(baseQuery+ " AND demographic.education_level='college'").df()
-    totalEducationLevelCollege=df['total'][0]
-    #university
-    df = duckdb.sql(baseQuery+ " AND demographic.education_level='university'").df()
-    totalEducationLevelUniversity=df['total'][0]
+        logger.info(f"| 1. Get data contracts                                 |")
+        logger.info(f"|                                                       |")
+
+        #Connect in memory duckdb (encrypted memory on confidential computing)
+        con = duckdb.connect(database=":memory:")
+
+        collaboration_space_id=default_settings.collaboration_space_id
+        contractManager=ContractManager()
+
+        logger.info(f"| 2. Query patients from data sources                   |")
+        logger.info(f"|                                                       |")
+        data_contracts=contractManager.get_contracts_for_collaboration_space(collaboration_space_id)
+        for data_contract in data_contracts:
+            # Add DuckDB connection for the current data contract
+            con = data_contract.connector.add_duck_db_connection(con)
+            #hard coded patiens
+            if data_contract.data_descriptor_id=="672116ef5d4301b25e5a7aa0":
+                patient_source=data_contract.connector.get_duckdb_source("patients")
+            else:
+                demographic_source=data_contract.connector.get_duckdb_source("citizens")
+        
+        whereClause=""    
+        if medical_problem!="":
+            whereClause+=f"patients.medical_problem='{medical_problem}'"
+        if medical_medication!="":
+            if whereClause!="":
+                whereClause+=" AND "
+            whereClause+=f"patients.medical_medication='{medical_medication}'"
+        if medical_vaccine!="":
+            if whereClause!="":
+                whereClause+=" AND "
+            whereClause+=f"patients.medical_vaccine='{medical_vaccine}'"
+
+        if whereClause!='':
+            baseQuery=f"SELECT COUNT(*) as total from {demographic_source} as demographic, {patient_source} as patients WHERE demographic.national_id=patients.national_id AND "+whereClause
+        else:
+            baseQuery=f"SELECT COUNT(*) as total from {demographic_source} as demographic, {patient_source} as patients WHERE demographic.national_id=patients.national_id"
+        
+        print(baseQuery)
+        #total candidates
+        df = con.sql(baseQuery).df()
+        totalCandidates=df['total'][0]
+        
+        #gender
+        #male
+        df = con.sql(baseQuery+ " AND demographic.gender='male'").df()
+        totalGenderMale=df['total'][0]
+        #female
+        df = con.sql(baseQuery+ " AND demographic.gender='female'").df()
+        totalGenderFemale=df['total'][0]
+
+        #education_level
+        #high_school
+        df = con.sql(baseQuery+ " AND demographic.education_level='high_school'").df()
+        totalEducationLevelHighSchool=df['total'][0]
+        #college
+        df = con.sql(baseQuery+ " AND demographic.education_level='college'").df()
+        totalEducationLevelCollege=df['total'][0]
+        #university
+        df = con.sql(baseQuery+ " AND demographic.education_level='university'").df()
+        totalEducationLevelUniversity=df['total'][0]
 
 
-    #employment_status
-    #unemployed
-    df = duckdb.sql(baseQuery+ " AND demographic.employment_status='unemployed'").df()
-    totalEmploymentStatusUnemployed=df['total'][0]
-    #employed
-    df = duckdb.sql(baseQuery+ " AND demographic.employment_status='employed'").df()
-    totalEmploymentStatusEmployed=df['total'][0]
-    #student
-    df = duckdb.sql(baseQuery+ " AND demographic.employment_status='student'").df()
-    totalEmploymentStatusStudent=df['total'][0]
-    #retired
-    df = duckdb.sql(baseQuery+ " AND demographic.employment_status='retired'").df()
-    totalEmploymentStatusRetired=df['total'][0]
+        #employment_status
+        #unemployed
+        df = con.sql(baseQuery+ " AND demographic.employment_status='unemployed'").df()
+        totalEmploymentStatusUnemployed=df['total'][0]
+        #employed
+        df = con.sql(baseQuery+ " AND demographic.employment_status='employed'").df()
+        totalEmploymentStatusEmployed=df['total'][0]
+        #student
+        df = con.sql(baseQuery+ " AND demographic.employment_status='student'").df()
+        totalEmploymentStatusStudent=df['total'][0]
+        #retired
+        df = con.sql(baseQuery+ " AND demographic.employment_status='retired'").df()
+        totalEmploymentStatusRetired=df['total'][0]
 
-    execution_time=(time.time() - start_time)
-    logger.info(f"|    Execution time:  {execution_time} secs |")
+        logger.info(f"| 3. Export report                                      |")
+        logger.info(f"|                                                       |")
+        #get data contracts from all data consumers
+        data_contracts=contractManager.get_contracts_for_collaboration_space(default_settings.collaboration_space_id,Client.DATA_CONSUMER_COLLABORATOR_ROLE_VALUE)
+        export_model_key="candidates"
+        for data_contract in data_contracts:
+            con = data_contract.connector.add_duck_db_connection(con)
+            con.sql(data_contract.export_contract_to_sql_create_table(export_model_key))
+            query="INSERT INTO "+export_model_key+" VALUES ("+str(totalCandidates)+","+str(totalGenderMale)+","+str(totalGenderFemale)+","+str(totalEducationLevelHighSchool)+","+str(totalEducationLevelCollege)+","+str(totalEducationLevelUniversity)+","+str(totalEmploymentStatusUnemployed)+","+str(totalEmploymentStatusEmployed)+","+str(totalEmploymentStatusStudent)+","+str(totalEmploymentStatusRetired)+")"
+            con.sql(query)
+        data_contract.connector.export_signed_output_duckdb(export_model_key,default_settings.collaboration_space_id)
+        audit_log(f"Candidates exported to: {data_contract.data_descriptor_id}.")
+        logger.info(f"|                                                       |")
+        execution_time=(time.time() - start_time)
+        logger.info(f"|    Execution time:  {execution_time} secs           |")
+        logger.info(f"|                                                       |")
+        logger.info(f"--------------------------------------------------------")
+    except Exception as e:
+        logger.error(e)
 
-    logger.info(f"| 2. Save outputs of the collaboration           |")
-    # The output file model is stored in the data folder
-    
-    output= ''' {
-    "candidates": '''+str(totalCandidates)+''',
-        "gender": {
-        "male":'''+str(totalGenderMale)+''',
-        "female":'''+str(totalGenderFemale)+'''
-        },
-        "education_level": {
-        "high_school":'''+str(totalEducationLevelHighSchool)+''',
-        "college":'''+str(totalEducationLevelCollege)+''',
-        "university":'''+str(totalEducationLevelUniversity)+'''
-        },
-        "employment_status":{
-        "unemployed":'''+str(totalEmploymentStatusUnemployed)+''',
-        "employed":'''+str(totalEmploymentStatusEmployed)+''',
-        "student":'''+str(totalEmploymentStatusStudent)+''',
-        "retired":'''+str(totalEmploymentStatusRetired)+'''
-        }
-    } '''
-
-    #with open('data/my.json', 'w', newline='') as file:
-        #file.write(output)
-
-    with open('/resources/outputs/candidates-report.json', 'w', newline='') as file:
-        file.write(output)
+    # output= ''' {
+    # "candidates": '''+str(totalCandidates)+''',
+    #     "gender": {
+    #     "male":'''+str(totalGenderMale)+''',
+    #     "female":'''+str(totalGenderFemale)+'''
+    #     },
+    #     "education_level": {
+    #     "high_school":'''+str(totalEducationLevelHighSchool)+''',
+    #     "college":'''+str(totalEducationLevelCollege)+''',
+    #     "university":'''+str(totalEducationLevelUniversity)+'''
+    #     },
+    #     "employment_status":{
+    #     "unemployed":'''+str(totalEmploymentStatusUnemployed)+''',
+    #     "employed":'''+str(totalEmploymentStatusEmployed)+''',
+    #     "student":'''+str(totalEmploymentStatusStudent)+''',
+    #     "retired":'''+str(totalEmploymentStatusRetired)+'''
+    #     }
+    # } '''
    
-    logger.info(f"|                                                |")
-    logger.info(f"--------------------------------------------------")
-   
-
-if __name__ == "__main__":
-    test_event = {
-            "type": "QUERY",
-            "parameters": ""
-    }
-    process_query_event(test_event)
